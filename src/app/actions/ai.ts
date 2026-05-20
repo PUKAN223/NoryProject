@@ -19,13 +19,20 @@ export async function parseExpenseWithAI(input: string): Promise<ParsedExpense> 
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-      contents: `You are an expense parser for a Thai expense tracking app. Parse the following user input into a JSON object with these fields:
-- "title": the name/description of the expense in Thai (keep original language)
-- "amount": the numeric amount spent (number, no currency symbol)  
-- "category": one of these categories: "Food", "Drinks", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Other"
+      contents: `You are an expense parser for a Thai expense tracking app. Parse the following user input into a JSON object.
 
-If no amount is found, set amount to 0.
-If the input is ambiguous, make your best guess.
+Rules:
+- "title": Short item name in Thai. If quantity > 1, append " x{qty}" e.g. "กระเพรา x2". Keep original language.
+- "unitPrice": price per unit (number). Extract from phrases like "ละ", "อัน", "กล่องละ", "ชิ้นละ", or per-item price.
+- "quantity": how many units (number, default 1). Extract from "2 กล่อง", "สาม อัน", "x3", "สอง", etc.
+- "amount": ALWAYS = unitPrice × quantity (calculated total, number)
+- "category": one of "Food", "Drinks", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Other"
+
+Examples:
+- "กระเพรา 50 บาท 2 กล่อง" → title="กระเพรา x2", unitPrice=50, quantity=2, amount=100, category="Food"
+- "ชาเขียว 35" → title="ชาเขียว", unitPrice=35, quantity=1, amount=35, category="Drinks"
+- "น้ำ 3 ขวด ขวดละ 10" → title="น้ำ x3", unitPrice=10, quantity=3, amount=30, category="Drinks"
+- "เดินไปสั่งกระเพรามา 50 บาทได้มั้ง 2 กล่อง" → title="กระเพรา x2", unitPrice=50, quantity=2, amount=100, category="Food"
 
 User input: "${input}"`,
       config: {
@@ -34,10 +41,12 @@ User input: "${input}"`,
           type: Type.OBJECT,
           properties: {
             title: { type: Type.STRING },
+            unitPrice: { type: Type.NUMBER },
+            quantity: { type: Type.NUMBER },
             amount: { type: Type.NUMBER },
             category: { type: Type.STRING },
           },
-          required: ["title", "amount", "category"],
+          required: ["title", "unitPrice", "quantity", "amount", "category"],
         },
         temperature: 0.1,
       },
@@ -47,10 +56,13 @@ User input: "${input}"`,
     if (!text) return fallbackParse(input);
 
     const parsed = JSON.parse(text);
+    const qty = typeof parsed.quantity === "number" ? parsed.quantity : 1;
+    const unitPrice = typeof parsed.unitPrice === "number" ? parsed.unitPrice : 0;
+    const totalAmount = typeof parsed.amount === "number" ? parsed.amount : unitPrice * qty;
 
     return {
       title: parsed.title || input,
-      amount: typeof parsed.amount === "number" ? parsed.amount : 0,
+      amount: totalAmount,
       category: parsed.category || "Other",
     };
   } catch (error) {
