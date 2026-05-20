@@ -132,7 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div
           className={`absolute inset-x-6 bottom-32 z-50 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             isInputFocused
-              ? "-translate-y-[35dvh] scale-[1.02]"
+              ? "-translate-y-[220px] scale-[1.02]"
               : "translate-y-0 scale-100"
           }`}
         >

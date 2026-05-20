@@ -25,6 +25,18 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+  
+  /* Native app feel */
+  -webkit-touch-callout: none; /* Disable iOS callout */
+  -webkit-user-select: none; /* Safari */
+  user-select: none; /* Standard syntax */
+  overscroll-behavior-y: none; /* Disable pull-to-refresh */
+}
+
+/* Allow text selection in inputs and textareas */
+input, textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
 }
 
 /* Custom utilities */
